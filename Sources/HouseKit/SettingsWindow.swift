@@ -120,7 +120,11 @@ private final class SettingsSidebarController: NSViewController, NSTableViewData
 
     func select(index: Int) {
         _ = view
+        // The table has no rows until it has loaded once; selecting before
+        // that is a no-op and the detail stays blank.
+        if table.numberOfRows != pages.count { table.reloadData() }
         table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+        if table.selectedRow == index { onSelect(index) }
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { pages.count }
