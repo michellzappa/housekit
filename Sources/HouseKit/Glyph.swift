@@ -75,7 +75,20 @@ public enum HouseGlyphs {
         ])
     }()
 
+    /// A desk: a wide top slab raised on two legs, a lower slab where it sat.
+    public static let lift: Glyph = {
+        let top: CGFloat = 0.2
+        let leg: CGFloat = 0.14
+        return Glyph([
+            Mark(x: 0, y: 1 - top, width: 1, height: top, alpha: 0.97),
+            Mark(x: 0.08, y: 0.32, width: leg, height: 1 - top - 0.32 - Glyph.gap, alpha: 0.72),
+            Mark(x: 1 - 0.08 - leg, y: 0.32, width: leg, height: 1 - top - 0.32 - Glyph.gap, alpha: 0.72),
+            Mark(x: 0, y: 0, width: 1, height: top, alpha: 0.52)
+        ])
+    }()
+
     public static let all: [String: Glyph] = [
+        "lift": lift,
         "tessellate": tessellate,
         "cargo": cargo,
         "clip": clip
