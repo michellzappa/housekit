@@ -1,6 +1,6 @@
 # HouseKit
 
-The bits Tessellate, Cargo and Clip share so they read as one family. Local
+The bits Tessellate, Cargo, Clip and Lift share so they read as one family. Local
 SPM package; each app depends on it by path (`../housekit`).
 
 ## What is in it
