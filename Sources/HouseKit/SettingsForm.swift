@@ -135,6 +135,11 @@ open class SettingsForm: NSViewController {
         field.controlSize = .small
         field.font = .systemFont(ofSize: NSFont.smallSystemFontSize)
         field.placeholderString = placeholder
+        // One line, scrolls horizontally; a long URL must not grow the row.
+        field.usesSingleLineMode = true
+        field.cell?.wraps = false
+        field.cell?.isScrollable = true
+        field.lineBreakMode = .byClipping
         field.widthAnchor.constraint(equalToConstant: width).isActive = true
         return field
     }
