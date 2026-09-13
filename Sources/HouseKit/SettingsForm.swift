@@ -20,7 +20,7 @@ open class SettingsForm: NSViewController {
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.rowSpacing = 10
         grid.columnSpacing = 14
-        grid.column(at: 0).xPlacement = .trailing
+        grid.column(at: 0).xPlacement = .leading
         grid.column(at: 0).width = Self.labelColumnWidth
         grid.column(at: 1).xPlacement = .fill
         grid.rowAlignment = .firstBaseline
@@ -64,7 +64,6 @@ open class SettingsForm: NSViewController {
         stack.spacing = 8
         let label: NSView = title.map {
             let label = Self.label($0, color: .secondaryLabelColor, wraps: true)
-            label.alignment = .right
             label.preferredMaxLayoutWidth = Self.labelColumnWidth
             return label
         } ?? NSGridCell.emptyContentView
