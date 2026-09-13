@@ -23,7 +23,8 @@ open class SettingsForm: NSViewController {
         grid.column(at: 0).xPlacement = .leading
         grid.column(at: 0).width = Self.labelColumnWidth
         grid.column(at: 1).xPlacement = .fill
-        grid.rowAlignment = .firstBaseline
+        grid.rowAlignment = .none
+        grid.yPlacement = .center
 
         let content = FlippedView()
         content.translatesAutoresizingMaskIntoConstraints = false
@@ -60,7 +61,7 @@ open class SettingsForm: NSViewController {
     public func row(_ title: String?, _ views: [NSView]) -> NSGridRow {
         let stack = NSStackView(views: views)
         stack.orientation = .horizontal
-        stack.alignment = .firstBaseline
+        stack.alignment = .centerY
         stack.spacing = 8
         let label: NSView = title.map {
             let label = Self.label($0, color: .secondaryLabelColor, wraps: true)
@@ -85,9 +86,7 @@ open class SettingsForm: NSViewController {
         control.target = ToggleTarget.shared
         control.action = #selector(ToggleTarget.changed(_:))
         ToggleTarget.shared.handlers[ObjectIdentifier(control)] = onChange
-        let row = row(title, control)
-        row.rowAlignment = .none
-        row.yPlacement = .center
+        row(title, control)
         return control
     }
 
