@@ -13,7 +13,7 @@ import Testing
 
     @Test func iconRendersEverySize() {
         for size in IconPlate.iconsetSizes {
-            let bitmap = IconPlate.bitmap(glyph: HouseGlyphs.strata, pixels: size.pixels)
+            let bitmap = IconPlate.bitmap(glyph: HouseGlyphs.clip, pixels: size.pixels)
             #expect(bitmap.pixelsWide == size.pixels)
         }
     }

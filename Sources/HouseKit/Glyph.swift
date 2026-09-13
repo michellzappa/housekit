@@ -65,7 +65,7 @@ public enum HouseGlyphs {
     public static let cargo = Glyph.slabs([0.97, 0.72, 0.52], insets: [0, 0, 62.0 / 524])
 
     /// Three sheets fanned diagonally, newest (front, bottom-right) brightest.
-    public static let strata: Glyph = {
+    public static let clip: Glyph = {
         let size: CGFloat = 0.66
         let step = (1 - size) / 2
         return Glyph([
@@ -78,6 +78,6 @@ public enum HouseGlyphs {
     public static let all: [String: Glyph] = [
         "tessellate": tessellate,
         "cargo": cargo,
-        "strata": strata
+        "clip": clip
     ]
 }

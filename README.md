@@ -1,6 +1,6 @@
 # HouseKit
 
-The bits Tessellate, Cargo and Strata share so they read as one family. Local
+The bits Tessellate, Cargo and Clip share so they read as one family. Local
 SPM package; each app depends on it by path (`../housekit`).
 
 ## What is in it
@@ -10,7 +10,7 @@ SPM package; each app depends on it by path (`../housekit`).
   One definition renders both the 18pt menu bar icon and the 1024px app icon.
 - `MenuBarPlate` — the dark gradient plate with hairline rim. `MenuBarPlate.image(glyph:)`.
 - `IconPlate` — the same plate at Apple's 824-of-1024 footprint; writes iconsets / `.icns`.
-- `housekit-icon` — CLI the build scripts call: `housekit-icon strata AppIcon.icns`.
+- `housekit-icon` — CLI the build scripts call: `housekit-icon clip AppIcon.icns`.
 
 **Chrome**
 - `StatusMenu` — `sectionHeader(_:)` and `appendStandardTail(...)`: Settings… ⌘, ·
@@ -44,7 +44,7 @@ SPM package; each app depends on it by path (`../housekit`).
 ## Adding an app
 
 1. Add a `Glyph` to `HouseGlyphs.all`.
-2. Copy Strata's `project.yml`, `scripts/build-app.sh`, `Resources/`, and
+2. Copy Clip's `project.yml`, `scripts/build-app.sh`, `Resources/`, and
    `.github/workflows/release.yml`; rename.
 3. Build the status menu with `StatusMenu`, the settings window with
    `SettingsWindowController` + your `SettingsForm` pages + `GeneralPage` + `AboutPage`.
