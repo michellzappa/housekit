@@ -27,12 +27,16 @@ public struct PermissionRow: Sendable {
         title: "Accessibility",
         grantedText: "Granted",
         missingText: "Not granted",
-        isGranted: { AXIsProcessTrusted() },
-        openSettings: {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-                NSWorkspace.shared.open(url)
-            }
-        }
+        isGranted: { Accessibility.isTrusted },
+        openSettings: { Accessibility.openSettings() }
+    )
+
+    public static let notifications = PermissionRow(
+        title: "Notifications",
+        grantedText: "Allowed",
+        missingText: "Not allowed",
+        isGranted: { Notifications.isGranted },
+        openSettings: { Notifications.openSettings() }
     )
 }
 
