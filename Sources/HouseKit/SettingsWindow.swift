@@ -35,6 +35,8 @@ public final class SettingsWindowController: NSWindowController {
         window.setFrameAutosaveName("\(appName).Settings")
         window.collectionBehavior = [.moveToActiveSpace]
         window.isReleasedWhenClosed = false
+        // Pages are swapped in and out; the loop is rebuilt on every swap (see show(index:)).
+        window.autorecalculatesKeyViewLoop = true
         super.init(window: window)
         split.select(index: 0)
     }
@@ -47,6 +49,7 @@ public final class SettingsWindowController: NSWindowController {
         if window?.isVisible != true, window?.frameAutosaveName.isEmpty != false { window?.center() }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        split.focusFirstControl()
     }
 }
 
@@ -91,6 +94,33 @@ private final class SettingsSplitViewController: NSSplitViewController {
             page.view.leadingAnchor.constraint(equalTo: detail.view.leadingAnchor),
             page.view.trailingAnchor.constraint(equalTo: detail.view.trailingAnchor)
         ])
+        page.view.layoutSubtreeIfNeeded()
+        view.window?.recalculateKeyViewLoop()
+        focusFirstControl()
+    }
+
+    /// Tab starts at the page's first control, not in the sidebar.
+    func focusFirstControl() {
+        guard let window = view.window, let page = detail.children.first?.view else { return }
+        page.layoutSubtreeIfNeeded()
+        window.recalculateKeyViewLoop()
+        if let first = Self.firstKeyView(in: page) {
+            window.initialFirstResponder = first
+            window.makeFirstResponder(first)
+        }
+    }
+
+    /// Depth-first, in layout order (top to bottom), the first view that takes keyboard focus.
+    private static func firstKeyView(in view: NSView) -> NSView? {
+        let ordered = view.subviews.sorted { a, b in
+            let fa = a.superview!.convert(a.frame, to: nil), fb = b.superview!.convert(b.frame, to: nil)
+            return fa.maxY == fb.maxY ? fa.minX < fb.minX : fa.maxY > fb.maxY
+        }
+        for child in ordered where !child.isHidden {
+            if child.canBecomeKeyView, child is NSControl || child is NSTextView { return child }
+            if let nested = firstKeyView(in: child) { return nested }
+        }
+        return nil
     }
 }
 
@@ -109,6 +139,8 @@ private final class SettingsSidebarController: NSViewController, NSTableViewData
         table.style = .sourceList
         table.rowHeight = 28
         table.allowsEmptySelection = false
+        // Navigate with the mouse or ⌘1…; Tab stays inside the page.
+        table.refusesFirstResponder = true
         table.dataSource = self
         table.delegate = self
         let scroll = NSScrollView()
