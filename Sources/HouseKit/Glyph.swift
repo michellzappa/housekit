@@ -91,6 +91,17 @@ public enum HouseGlyphs {
         ])
     }()
 
+    /// Smaller, quieter version for Clip's 18pt menu-bar slot.
+    public static let clipMenuBar: Glyph = {
+        let size: CGFloat = 0.54
+        let step = (1 - size) / 2
+        return Glyph([
+            Mark(x: 0, y: step * 2, width: size, height: size, alpha: 0.28),
+            Mark(x: step, y: step, width: size, height: size, alpha: 0.45),
+            Mark(x: step * 2, y: 0, width: size, height: size, alpha: 0.72)
+        ])
+    }()
+
     /// A desk: a wide top on two legs, the far leg fainter.
     public static let lift: Glyph = {
         let top: CGFloat = 0.26
