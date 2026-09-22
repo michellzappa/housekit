@@ -12,9 +12,11 @@ import Testing
     }
 
     @Test func iconRendersEverySize() {
-        for size in IconPlate.iconsetSizes {
-            let bitmap = IconPlate.bitmap(glyph: HouseGlyphs.clip, pixels: size.pixels)
-            #expect(bitmap.pixelsWide == size.pixels)
+        for glyph in [HouseGlyphs.clip, HouseGlyphs.cargo] {
+            for size in IconPlate.iconsetSizes {
+                let bitmap = IconPlate.bitmap(glyph: glyph, pixels: size.pixels)
+                #expect(bitmap.pixelsWide == size.pixels)
+            }
         }
     }
 }

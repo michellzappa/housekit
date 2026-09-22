@@ -1,5 +1,10 @@
 import CoreGraphics
 
+public enum MarkShape: Sendable, Equatable {
+    case roundedRect
+    case roundedTriangle
+}
+
 /// One white mark on the house plate, in normalized field coordinates
 /// (0…1 across the square field, origin bottom-left). The same glyph renders
 /// on the 18pt menu bar plate and the 1024px app icon — see `MenuBarPlate`
@@ -11,13 +16,22 @@ public struct Mark: Sendable, Equatable {
     public var height: CGFloat
     /// House alphas are 0.97 / 0.72 / 0.52 for a three-mark glyph.
     public var alpha: CGFloat
+    public var shape: MarkShape
 
-    public init(x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat, alpha: CGFloat) {
+    public init(
+        x: CGFloat,
+        y: CGFloat,
+        width: CGFloat,
+        height: CGFloat,
+        alpha: CGFloat,
+        shape: MarkShape = .roundedRect
+    ) {
         self.x = x
         self.y = y
         self.width = width
         self.height = height
         self.alpha = alpha
+        self.shape = shape
     }
 
     public var rect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
@@ -61,17 +75,20 @@ public enum HouseGlyphs {
         ])
     }()
 
-    /// Three container slabs; the top one set down slightly narrower.
-    public static let cargo = Glyph.slabs([0.97, 0.72, 0.52], insets: [0, 0, 62.0 / 524])
+    /// A rounded play wedge: media moving home, rather than a generic stack.
+    public static let cargo = Glyph([
+        // The extra rightward bias counteracts the triangle's broad left edge.
+        Mark(x: 0.28, y: 0.15, width: 0.70, height: 0.70, alpha: 0.94, shape: .roundedTriangle)
+    ])
 
     /// Three sheets fanned diagonally, newest (front, bottom-right) brightest.
     public static let clip: Glyph = {
-        let size: CGFloat = 0.66
+        let size: CGFloat = 0.60
         let step = (1 - size) / 2
         return Glyph([
-            Mark(x: 0, y: step * 2, width: size, height: size, alpha: 0.52),
-            Mark(x: step, y: step, width: size, height: size, alpha: 0.72),
-            Mark(x: step * 2, y: 0, width: size, height: size, alpha: 0.97)
+            Mark(x: 0, y: step * 2, width: size, height: size, alpha: 0.40),
+            Mark(x: step, y: step, width: size, height: size, alpha: 0.58),
+            Mark(x: step * 2, y: 0, width: size, height: size, alpha: 0.84)
         ])
     }()
 

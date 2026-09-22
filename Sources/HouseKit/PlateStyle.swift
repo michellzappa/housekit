@@ -47,6 +47,77 @@ enum PlateStyle {
             rect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
         }
         NSColor(calibratedWhite: 1, alpha: mark.alpha).setFill()
-        NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+        switch mark.shape {
+        case .roundedRect:
+            NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius).fill()
+        case .roundedTriangle:
+            roundedTrianglePath(in: rect, radius: cornerRadius * 0.55).fill()
+        }
+    }
+
+    private static func roundedTrianglePath(in rect: CGRect, radius: CGFloat) -> NSBezierPath {
+        let vertices = [
+            CGPoint(x: rect.minX, y: rect.minY),
+            CGPoint(x: rect.maxX, y: rect.midY),
+            CGPoint(x: rect.minX, y: rect.maxY)
+        ]
+        let radius = min(radius, min(rect.width, rect.height) * 0.18)
+        var entry = [CGPoint](repeating: .zero, count: vertices.count)
+        var exit = [CGPoint](repeating: .zero, count: vertices.count)
+
+        for index in vertices.indices {
+            let vertex = vertices[index]
+            let previous = vertices[(index + vertices.count - 1) % vertices.count]
+            let next = vertices[(index + 1) % vertices.count]
+            let incoming = previous - vertex
+            let outgoing = next - vertex
+            let incomingLength = hypot(incoming.x, incoming.y)
+            let outgoingLength = hypot(outgoing.x, outgoing.y)
+            let angle = acos(
+                max(-1, min(1, (incoming.x * outgoing.x + incoming.y * outgoing.y)
+                    / (incomingLength * outgoingLength)))
+            )
+            let distance = min(
+                radius / tan(angle / 2),
+                min(incomingLength, outgoingLength) * 0.35
+            )
+            entry[index] = vertex + incoming * (distance / incomingLength)
+            exit[index] = vertex + outgoing * (distance / outgoingLength)
+        }
+
+        let path = NSBezierPath()
+        path.move(to: exit[0])
+        for index in vertices.indices {
+            let nextIndex = (index + 1) % vertices.count
+            path.line(to: entry[nextIndex])
+            addQuadraticCurve(
+                to: exit[nextIndex],
+                control: vertices[nextIndex],
+                on: path
+            )
+        }
+        path.close()
+        return path
+    }
+
+    private static func addQuadraticCurve(to end: CGPoint, control: CGPoint, on path: NSBezierPath) {
+        let start = path.currentPoint
+        let controlPoint1 = start + (control - start) * (2 / 3)
+        let controlPoint2 = end + (control - end) * (2 / 3)
+        path.curve(to: end, controlPoint1: controlPoint1, controlPoint2: controlPoint2)
+    }
+}
+
+private extension CGPoint {
+    static func + (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+        CGPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+    }
+
+    static func - (lhs: CGPoint, rhs: CGPoint) -> CGPoint {
+        CGPoint(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
+    }
+
+    static func * (lhs: CGPoint, rhs: CGFloat) -> CGPoint {
+        CGPoint(x: lhs.x * rhs, y: lhs.y * rhs)
     }
 }
