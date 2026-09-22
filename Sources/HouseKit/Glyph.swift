@@ -77,8 +77,7 @@ public enum HouseGlyphs {
 
     /// A rounded play wedge: media moving home, rather than a generic stack.
     public static let cargo = Glyph([
-        // The extra rightward bias counteracts the triangle's broad left edge.
-        Mark(x: 0.28, y: 0.15, width: 0.70, height: 0.70, alpha: 0.94, shape: .roundedTriangle)
+        Mark(x: 0.15, y: 0.15, width: 0.70, height: 0.70, alpha: 0.94, shape: .roundedTriangle)
     ])
 
     /// Three sheets fanned diagonally, newest (front, bottom-right) brightest.
