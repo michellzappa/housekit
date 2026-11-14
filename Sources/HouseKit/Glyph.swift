@@ -113,7 +113,12 @@ public enum HouseGlyphs {
         ])
     }()
 
+    /// A funnel of three centered slabs: many loose tabs on top, one sorted
+    /// line at the bottom, brightest where it narrows.
+    public static let sift = Glyph.slabs([0.97, 0.72, 0.52], insets: [0.33, 0.165, 0])
+
     public static let all: [String: Glyph] = [
+        "sift": sift,
         "lift": lift,
         "tessellate": tessellate,
         "cargo": cargo,
