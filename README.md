@@ -1,6 +1,6 @@
 # HouseKit
 
-The bits mz's Mac apps (Headroom, Sift, Tessellate, Cargo, Clip, Lift) share so
+The bits mz's Mac apps (Headroom, Sift, Tessellate, Cargo, Clip, Lift, Subs) share so
 they read as one family. Local SPM package; each app depends on it by path
 (`../housekit`).
 
