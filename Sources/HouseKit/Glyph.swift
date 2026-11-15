@@ -117,11 +117,25 @@ public enum HouseGlyphs {
     /// line at the bottom, brightest where it narrows.
     public static let sift = Glyph.slabs([0.97, 0.72, 0.52], insets: [0.33, 0.165, 0])
 
+    /// A screen with two caption lines under it: the wide line brightest,
+    /// the short centered line below it, the picture faint above.
+    public static let subs: Glyph = {
+        let gap = Glyph.gap
+        let line: CGFloat = 0.14
+        let pictureY = (line + gap) * 2
+        return Glyph([
+            Mark(x: 0, y: pictureY, width: 1, height: 1 - pictureY, alpha: 0.52),
+            Mark(x: 0.08, y: line + gap, width: 0.84, height: line, alpha: 0.97),
+            Mark(x: 0.22, y: 0, width: 0.56, height: line, alpha: 0.72)
+        ])
+    }()
+
     public static let all: [String: Glyph] = [
         "sift": sift,
         "lift": lift,
         "tessellate": tessellate,
         "cargo": cargo,
-        "clip": clip
+        "clip": clip,
+        "subs": subs
     ]
 }
