@@ -8,9 +8,15 @@ The exception is Headroom; see `docs/updater.md` in that repo.
 ## What a release does
 
 1. Builds a universal app (`xcodegen generate`, then `xcodebuild archive`)
-   with Developer ID, hardened runtime and a secure timestamp.
+   with Developer ID and hardened runtime, without a timestamp.
    `CFBundleVersion` is the commit count, so it grows with every release.
-2. Signs Sparkle's helpers inside the app with the same identity.
+2. Signs the code again with a secure timestamp, innermost first: Sparkle's
+   helpers, other frameworks, extra executables in `Contents/MacOS` (an MCP
+   server, a native messaging host), then the app. Apple's timestamp server
+   sometimes refuses a request from the runners ("A timestamp was expected
+   but was not found"); inside `xcodebuild` one refusal failed the archive,
+   so this step retries each `codesign` call up to 6 times. It fails when
+   any executable is left without a timestamp.
 3. Checks the app: the version matches the tag, `SUFeedURL` and
    `SUPublicEDKey` are present, the signature verifies.
 4. Takes the release notes from the app's `CHANGELOG.md` section for the

@@ -155,32 +155,6 @@ jobs:
           [[ -n "$identity" ]] || { echo "::error::No Developer ID Application identity in the certificate"; exit 1; }
           echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
 
-      - name: Sign Sparkle in the package cache
-        # Sparkle ships its helpers ad-hoc signed, without a timestamp. When
-        # Xcode copies Sparkle.framework into the app it signs the framework
-        # with --timestamp and fails ("A timestamp was expected but was not
-        # found"). Signing the helpers here first, innermost out, fixes that.
-        env:
-          SCHEME: ${{ inputs.scheme }}
-          PROJECT: ${{ inputs.project }}
-        run: |
-          set -euo pipefail
-          xcodebuild -resolvePackageDependencies \
-            -project "${PROJECT:-$APP_NAME.xcodeproj}" -scheme "${SCHEME:-$APP_NAME}" \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" -quiet
-          sign() { codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGN_IDENTITY" "$1"; }
-          found=0
-          while IFS= read -r framework; do
-            found=1
-            while IFS= read -r bundle; do
-              sign "$bundle"
-            done < <(find "$framework/Versions" \( -name '*.xpc' -o -name '*.app' \) -type d -prune -print | sort -r)
-            if [[ -f "$framework/Versions/B/Autoupdate" ]]; then sign "$framework/Versions/B/Autoupdate"; fi
-            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$framework"
-            codesign --verify --deep --strict "$framework"
-          done < <(find "$RUNNER_TEMP/DerivedData/SourcePackages/artifacts" -type d -name Sparkle.framework -path '*macos*' -prune -print)
-          [[ "$found" == 1 ]] || { echo "::error::Sparkle.framework not found in the resolved packages. Does the app depend on HouseKitSparkle?"; exit 1; }
-
       - name: Archive the universal app
         env:
           SCHEME: ${{ inputs.scheme }}
@@ -196,6 +170,10 @@ jobs:
           archive="$RUNNER_TEMP/$APP_NAME.xcarchive"
           # The caller's extra settings may use $(...), e.g. a commit SHA.
           eval "set -- $EXTRA_ARGS"
+          # No timestamps here: Apple's timestamp server sometimes refuses a
+          # request from the runners ("A timestamp was expected but was not
+          # found"), and one refusal inside xcodebuild fails the archive. The
+          # next step signs everything again with a timestamp and retries.
           xcodebuild \
             -project "$project" \
             -scheme "$scheme" \
@@ -210,36 +188,85 @@ jobs:
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENABLE_HARDENED_RUNTIME=YES \
-            OTHER_CODE_SIGN_FLAGS="--timestamp" \
+            OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
             "$@" \
             archive
           app="$archive/Products/Applications/$APP_NAME.app"
           [[ -d "$app" ]] || { echo "::error::$app not found"; exit 1; }
           echo "APP_PATH=$app" >> "$GITHUB_ENV"
 
-      - name: Sign Sparkle's helpers with Developer ID
-        # Sparkle.framework carries XPC services and helper apps. Notarization
-        # needs each one signed with our identity, hardened runtime and a
-        # timestamp: innermost first, then the framework, then the app.
+      - name: Sign with Developer ID and a timestamp
+        # Notarization needs every piece of code signed with our identity,
+        # hardened runtime and a secure timestamp: innermost first (Sparkle's
+        # XPC services and helpers, frameworks, extra executables in
+        # Contents/MacOS), then the app. Apple's timestamp server sometimes
+        # refuses a request ("A timestamp was expected but was not found"),
+        # so each codesign call is retried with a growing pause.
         env:
           PROVISION_PROFILE: ${{ secrets.MACOS_PROVISION_PROFILE }}
         run: |
           set -euo pipefail
-          sparkle="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          sign() {
+            local attempt
+            for attempt in 1 2 3 4 5 6; do
+              if codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$@"; then
+                return 0
+              fi
+              echo "::warning::codesign failed for ${*: -1} (attempt $attempt of 6)"
+              sleep $((attempt * 10))
+            done
+            echo "::error::codesign failed 6 times for ${*: -1}"
+            return 1
+          }
+          # Keep what Xcode signed in: entitlements, designated requirement,
+          # flags.
+          resign() { sign --preserve-metadata=entitlements,requirements,flags "$1"; }
+
+          frameworks="$APP_PATH/Contents/Frameworks"
+          sparkle="$frameworks/Sparkle.framework"
           [[ -d "$sparkle" ]] || { echo "::error::$APP_NAME.app does not embed Sparkle.framework, so it can never update itself"; exit 1; }
           # --preserve-metadata keeps the Downloader service's own sandbox
           # entitlements, which sandboxed apps need.
-          sign() { codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGN_IDENTITY" "$1"; }
           while IFS= read -r bundle; do
-            sign "$bundle"
+            sign --preserve-metadata=entitlements "$bundle"
           done < <(find "$sparkle/Versions" \( -name '*.xpc' -o -name '*.app' \) -type d -prune -print | sort -r)
-          if [[ -f "$sparkle/Versions/B/Autoupdate" ]]; then sign "$sparkle/Versions/B/Autoupdate"; fi
-          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$sparkle"
+          if [[ -f "$sparkle/Versions/B/Autoupdate" ]]; then sign --preserve-metadata=entitlements "$sparkle/Versions/B/Autoupdate"; fi
+          sign "$sparkle"
+
+          # Other embedded frameworks and libraries.
+          while IFS= read -r item; do
+            resign "$item"
+          done < <(find "$frameworks" -mindepth 1 -maxdepth 1 \( -name '*.framework' -o -name '*.dylib' \) ! -name Sparkle.framework -print 2>/dev/null | sort)
+
+          # Bundles and helper executables next to the main executable.
+          for dir in XPCServices PlugIns Library/LoginItems Helpers; do
+            [[ -d "$APP_PATH/Contents/$dir" ]] || continue
+            while IFS= read -r item; do
+              resign "$item"
+            done < <(find "$APP_PATH/Contents/$dir" -mindepth 1 -maxdepth 1 -print | sort)
+          done
+          main=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP_PATH/Contents/Info.plist")
+          while IFS= read -r item; do
+            [[ "$(basename "$item")" == "$main" ]] && continue
+            file -b "$item" | grep -q Mach-O || continue
+            resign "$item"
+          done < <(find "$APP_PATH/Contents/MacOS" -mindepth 1 -maxdepth 1 -type f -print | sort)
+
           if [[ -n "$PROVISION_PROFILE" ]]; then
             printf '%s' "$PROVISION_PROFILE" | base64 --decode > "$APP_PATH/Contents/embedded.provisionprofile"
           fi
-          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
-            --preserve-metadata=entitlements,requirements,flags "$APP_PATH"
+          resign "$APP_PATH"
+
+          # Every executable in the app must now carry a timestamp.
+          missing=0
+          while IFS= read -r item; do
+            file -b "$item" | grep -q Mach-O || continue
+            if ! codesign -dvv "$item" 2>&1 | grep -q '^Timestamp='; then
+              echo "::error::No secure timestamp on ${item#"$APP_PATH/"}"
+              missing=1
+            fi
+          done < <(find "$APP_PATH" -type f -perm -u+x -print)
+          [[ "$missing" == 0 ]]
 
       - name: Check the app
         run: |
