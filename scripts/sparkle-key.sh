@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Give a repo its own Sparkle EdDSA key pair, once, and print the public key.
+# Give each repo its own Sparkle EdDSA key pair, once, and print
+# "<repo> <public key>" per repo.
 #
-#   ./scripts/sparkle-key.sh michellzappa/tessellate
+#   ./scripts/sparkle-key.sh michellzappa/tessellate [michellzappa/clip ...]
 #
 # The private key goes to two places and nowhere else:
 #   - the repo's GitHub Actions secret SPARKLE_PRIVATE_ED_KEY (release signing)
@@ -16,13 +17,14 @@
 set -euo pipefail
 set +x
 
-REPO="${1:?usage: sparkle-key.sh owner/repo}"
+[[ $# -gt 0 ]] || { echo "usage: sparkle-key.sh owner/repo [owner/repo ...]" >&2; exit 1; }
 SERVICE="https://sparkle-project.org"
 
 command -v openssl >/dev/null || { echo "error: openssl is required" >&2; exit 1; }
 openssl version | grep -q '^OpenSSL 3' || { echo "error: needs OpenSSL 3 (Homebrew), not LibreSSL" >&2; exit 1; }
 
-seed=""
+one_repo() {
+local REPO="$1" seed="" pem="" public=""
 if seed=$(security find-generic-password -s "$SERVICE" -a "$REPO" -w 2>/dev/null); then
   echo "Reusing the keychain key for $REPO." >&2
 else
@@ -44,4 +46,7 @@ public=$( { printf '\x30\x2e\x02\x01\x00\x30\x05\x06\x03\x2b\x65\x70\x04\x22\x04
 printf '%s' "$seed" | gh secret set SPARKLE_PRIVATE_ED_KEY -R "$REPO" >/dev/null
 unset seed
 echo "Set SPARKLE_PRIVATE_ED_KEY on $REPO." >&2
-echo "$public"
+echo "$REPO $public"
+}
+
+for repo in "$@"; do one_repo "$repo"; done
