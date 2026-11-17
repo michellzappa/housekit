@@ -17,7 +17,8 @@ here, tag a new release, then move each app's pin on purpose.
 
 **Chrome**
 - `StatusMenu` — `sectionHeader(_:)` and `appendStandardTail(...)`: Settings… ⌘, ·
-  Launch at Login ✓ · Quit <App> ⌘Q, identical in every app.
+  Check for Updates… (with `updates:`) · Launch at Login ✓ · Quit <App> ⌘Q,
+  identical in every app.
 
 **Settings (house style, SwiftUI)** — the Headroom shape.
 - `HouseSettingsView(appName:panes:)` — `NavigationSplitView`: fixed 220 pt
@@ -34,8 +35,16 @@ here, tag a new release, then move each app's pin on purpose.
   approval case, optional menu bar icon), live Permissions rows
   (`PermissionRow`), optional Updates, then app `extras` sections.
 - `UpdatesSection` + `UpdateChecking` — this version, latest, automatic
-  switch, Check Now, Update to X. Each app keeps its own feed and installer and
-  adds a conformance; the checker must be `@Observable`.
+  switch, Check Now, Update to X. The checker must be `@Observable`.
+- `SparkleUpdater` (product `HouseKitSparkle`) — Sparkle behind
+  `UpdateChecking`. An app adds `SUFeedURL` and `SUPublicEDKey` to its
+  Info.plist and creates one. Off outside /Applications.
+  `StatusMenu.appendStandardTail(updates:)` adds "Check for Updates…".
+
+**Releases** — `.github/workflows/release-mac.yml` is the one release
+definition for the Mac apps (build, sign, notarize, GitHub Release, Sparkle
+appcast). See [docs/releasing.md](docs/releasing.md). Keys:
+`scripts/sparkle-key.sh`, Apple secrets: `scripts/setup-release-secrets.sh`.
 - `AboutSettingsPane` — icon (`AboutAppIcon` asset, else the app icon), name,
   "Version 0.5.1 (120)", tagline, credit, Changelog sheet, Source on GitHub
   with live stars (`repository: "owner/name"`), more `AboutLink`s, optional

@@ -6,6 +6,7 @@ import AppKit
 ///     app actions, with shortcuts
 ///     ──────────
 ///     Settings…            ⌘,
+///     Check for Updates…   (when the app passes `updates`)
 ///     Launch at Login      ✓
 ///     ──────────
 ///     Quit <App>           ⌘Q
@@ -24,7 +25,8 @@ public enum StatusMenu {
         settings: Selector,
         launchAtLogin: Selector,
         launchAtLoginEnabled: Bool,
-        quit: Selector
+        quit: Selector,
+        updates: (any UpdateChecking)? = nil
     ) {
         if let last = menu.items.last, !last.isSeparatorItem {
             menu.addItem(.separator())
@@ -32,6 +34,14 @@ public enum StatusMenu {
         let settingsItem = NSMenuItem(title: "Settings…", action: settings, keyEquivalent: ",")
         settingsItem.target = target
         menu.addItem(settingsItem)
+        if let updates {
+            let updatesItem = NSMenuItem(title: "Check for Updates…", action: #selector(UpdatesMenuTarget.check(_:)), keyEquivalent: "")
+            let target = UpdatesMenuTarget(updates)
+            updatesItem.target = target
+            // NSMenuItem holds its target weakly; the item keeps it alive.
+            updatesItem.representedObject = target
+            menu.addItem(updatesItem)
+        }
         let launchItem = NSMenuItem(title: "Launch at Login", action: launchAtLogin, keyEquivalent: "")
         launchItem.state = launchAtLoginEnabled ? .on : .off
         launchItem.target = target
@@ -40,5 +50,19 @@ public enum StatusMenu {
         let quitItem = NSMenuItem(title: "Quit \(appName)", action: quit, keyEquivalent: "q")
         quitItem.target = target
         menu.addItem(quitItem)
+    }
+}
+
+/// Target for the "Check for Updates…" item.
+@MainActor
+final class UpdatesMenuTarget: NSObject {
+    private let updates: any UpdateChecking
+
+    init(_ updates: any UpdateChecking) {
+        self.updates = updates
+    }
+
+    @objc func check(_ sender: Any?) {
+        updates.checkForUpdatesInteractively()
     }
 }
