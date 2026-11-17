@@ -168,7 +168,8 @@ jobs:
           build=$(eval "$BUILD_NUMBER_COMMAND" | head -1)
           [[ "$build" =~ ^[0-9]+$ ]] || { echo "::error::Build number '$build' is not a number"; exit 1; }
           archive="$RUNNER_TEMP/$APP_NAME.xcarchive"
-          # shellcheck disable=SC2086
+          # The caller's extra settings may use $(...), e.g. a commit SHA.
+          eval "set -- $EXTRA_ARGS"
           xcodebuild \
             -project "$project" \
             -scheme "$scheme" \
@@ -184,7 +185,7 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENABLE_HARDENED_RUNTIME=YES \
             OTHER_CODE_SIGN_FLAGS="--timestamp" \
-            $EXTRA_ARGS \
+            "$@" \
             archive
           app="$archive/Products/Applications/$APP_NAME.app"
           [[ -d "$app" ]] || { echo "::error::$app not found"; exit 1; }
