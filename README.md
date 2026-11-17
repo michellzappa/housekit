@@ -1,8 +1,10 @@
 # HouseKit
 
 The bits mz's Mac apps (Headroom, Sift, Tessellate, Cargo, Clip, Lift, Subs) share so
-they read as one family. Local SPM package; each app depends on it by path
-(`../housekit`).
+they read as one family. SPM package; each app pins a release tag by URL in its `project.yml`
+(`url: https://github.com/michellzappa/housekit`, `exactVersion: 0.1.0`), so
+CI, mz-mini and the laptop build the same HouseKit. To change HouseKit: merge
+here, tag a new release, then move each app's pin on purpose.
 
 ## What is in it
 
