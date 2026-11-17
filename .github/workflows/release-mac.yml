@@ -155,6 +155,32 @@ jobs:
           [[ -n "$identity" ]] || { echo "::error::No Developer ID Application identity in the certificate"; exit 1; }
           echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
 
+      - name: Sign Sparkle in the package cache
+        # Sparkle ships its helpers ad-hoc signed, without a timestamp. When
+        # Xcode copies Sparkle.framework into the app it signs the framework
+        # with --timestamp and fails ("A timestamp was expected but was not
+        # found"). Signing the helpers here first, innermost out, fixes that.
+        env:
+          SCHEME: ${{ inputs.scheme }}
+          PROJECT: ${{ inputs.project }}
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project "${PROJECT:-$APP_NAME.xcodeproj}" -scheme "${SCHEME:-$APP_NAME}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" -quiet
+          sign() { codesign --force --options runtime --timestamp --preserve-metadata=entitlements --sign "$SIGN_IDENTITY" "$1"; }
+          found=0
+          while IFS= read -r framework; do
+            found=1
+            while IFS= read -r bundle; do
+              sign "$bundle"
+            done < <(find "$framework/Versions" \( -name '*.xpc' -o -name '*.app' \) -type d -prune -print | sort -r)
+            if [[ -f "$framework/Versions/B/Autoupdate" ]]; then sign "$framework/Versions/B/Autoupdate"; fi
+            codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$framework"
+            codesign --verify --deep --strict "$framework"
+          done < <(find "$RUNNER_TEMP/DerivedData/SourcePackages/artifacts" -type d -name Sparkle.framework -path '*macos*' -prune -print)
+          [[ "$found" == 1 ]] || { echo "::error::Sparkle.framework not found in the resolved packages. Does the app depend on HouseKitSparkle?"; exit 1; }
+
       - name: Archive the universal app
         env:
           SCHEME: ${{ inputs.scheme }}
