@@ -74,6 +74,9 @@ on:
         required: true
       SPARKLE_PRIVATE_ED_KEY:
         required: true
+      MACOS_PROVISION_PROFILE:
+        description: Base64 Developer ID provisioning profile. Needed when the app claims a restricted entitlement (iCloud, for example).
+        required: false
 
 env:
   # Sparkle's command line tools (sign_update). Pinned by version and hash.
@@ -191,6 +194,8 @@ jobs:
         # Sparkle.framework carries XPC services and helper apps. Notarization
         # needs each one signed with our identity, hardened runtime and a
         # timestamp: innermost first, then the framework, then the app.
+        env:
+          PROVISION_PROFILE: ${{ secrets.MACOS_PROVISION_PROFILE }}
         run: |
           set -euo pipefail
           sparkle="$APP_PATH/Contents/Frameworks/Sparkle.framework"
@@ -203,6 +208,9 @@ jobs:
           done < <(find "$sparkle/Versions" \( -name '*.xpc' -o -name '*.app' \) -type d -prune -print | sort -r)
           if [[ -f "$sparkle/Versions/B/Autoupdate" ]]; then sign "$sparkle/Versions/B/Autoupdate"; fi
           codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$sparkle"
+          if [[ -n "$PROVISION_PROFILE" ]]; then
+            printf '%s' "$PROVISION_PROFILE" | base64 --decode > "$APP_PATH/Contents/embedded.provisionprofile"
+          fi
           codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" \
             --preserve-metadata=entitlements,requirements,flags "$APP_PATH"
 
@@ -227,6 +235,13 @@ jobs:
           [[ "$(printf '%s' "$public_key" | base64 --decode 2>/dev/null | wc -c | tr -d ' ')" == 32 ]] \
             || { echo "::error::SUPublicEDKey is missing or not a 32-byte Ed25519 key"; exit 1; }
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          # A restricted entitlement without a profile signs and notarizes,
+          # then macOS kills the app at launch.
+          if codesign -d --entitlements - --xml "$APP_PATH" 2>/dev/null | grep -q '<key>com.apple.developer\.' \
+             && [[ ! -f "$APP_PATH/Contents/embedded.provisionprofile" ]]; then
+            echo "::error::The app claims a restricted com.apple.developer entitlement but no MACOS_PROVISION_PROFILE secret is set"
+            exit 1
+          fi
           {
             echo "APP_VERSION=$version"
             echo "APP_BUILD=$build"

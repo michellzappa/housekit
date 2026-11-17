@@ -115,6 +115,10 @@ from the old feed first.
          SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
    ```
 
+   An app with a restricted entitlement (iCloud) also passes
+   `MACOS_PROVISION_PROFILE`, the base64 Developer ID provisioning profile.
+   Without it the run fails: such an app notarizes and then does not launch.
+
    Other inputs: `scheme`, `project`, `runner` (default `macos-26`),
    `submodules`, `xcodegen`, `build-number-command`, `xcodebuild-args`,
    `verify-command` (runs with `APP_PATH` set to the signed app).
