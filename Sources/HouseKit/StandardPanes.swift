@@ -5,7 +5,8 @@ import SwiftUI
 
 // MARK: - Updates
 
-/// What the Updates section needs from an app's update checker. Each app
+/// What the Updates section needs from an app's update checker. Apps use
+/// `SparkleUpdater` from the `HouseKitSparkle` product. Each app
 /// keeps its own feed and installer; it adds a small conformance.
 /// The checker must be `@Observable` so the section redraws on change.
 @MainActor
@@ -28,6 +29,15 @@ public protocol UpdateChecking: AnyObject, Observable {
     var policyNote: String { get }
     func checkForUpdates() async
     func installUpdate() throws
+    /// "Check for Updates…" in a menu. The default checks quietly; a checker
+    /// with its own window (Sparkle) shows it.
+    func checkForUpdatesInteractively()
+}
+
+public extension UpdateChecking {
+    func checkForUpdatesInteractively() {
+        Task { await checkForUpdates() }
+    }
 }
 
 /// "Updates" section: this version, latest, automatic switch, Check Now,
