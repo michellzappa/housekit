@@ -102,16 +102,12 @@ public enum HouseGlyphs {
         ])
     }()
 
-    /// A desk: a wide top on two legs, the far leg fainter.
-    public static let lift: Glyph = {
-        let top: CGFloat = 0.26
-        let leg: CGFloat = 0.22
-        return Glyph([
-            Mark(x: 0, y: 1 - top, width: 1, height: top, alpha: 0.97),
-            Mark(x: 0.08, y: 0, width: leg, height: 1 - top - Glyph.gap, alpha: 0.72),
-            Mark(x: 1 - 0.08 - leg, y: 0, width: leg, height: 1 - top - Glyph.gap, alpha: 0.52)
-        ])
-    }()
+    /// Three equal-width desk heights: one sit level, then two stand variants.
+    public static let lift = Glyph([
+        Mark(x: 0.10, y: 0.10, width: 0.80, height: 0.16, alpha: 0.40),
+        Mark(x: 0.10, y: 0.42, width: 0.80, height: 0.16, alpha: 0.72),
+        Mark(x: 0.10, y: 0.74, width: 0.80, height: 0.16, alpha: 0.72)
+    ])
 
     /// A funnel of three centered slabs: many loose tabs on top, one sorted
     /// line at the bottom, brightest where it narrows.
